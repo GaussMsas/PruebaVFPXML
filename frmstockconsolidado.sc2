@@ -514,7 +514,7 @@ DEFINE CLASS form1 AS form
 	PROCEDURE Command3.Click
 		thisform.release()
 		
-		** PRUEBA MATI
+		** PRUEBA MATI 2
 	ENDPROC
 
 	PROCEDURE Command4.Click
