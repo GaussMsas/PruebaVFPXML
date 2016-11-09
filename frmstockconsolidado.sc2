@@ -39,6 +39,9 @@ DEFINE CLASS form1 AS form
 	*< OBJECTDATA: ObjPath="Combo1" UniqueID="" Timestamp="" />
 	*< OBJECTDATA: ObjPath="Label5" UniqueID="" Timestamp="" />
 	*< OBJECTDATA: ObjPath="Check2" UniqueID="" Timestamp="" />
+	*< OBJECTDATA: ObjPath="Command7" UniqueID="" Timestamp="" />
+	*< OBJECTDATA: ObjPath="Command8" UniqueID="" Timestamp="" />
+	*< OBJECTDATA: ObjPath="Command9" UniqueID="" Timestamp="" />
 
 	Caption = "Generación de archivo de stock consolidado"
 	DoCreate = .T.
@@ -133,6 +136,36 @@ DEFINE CLASS form1 AS form
 		Name = "Command6", ;
 		Top = 128, ;
 		Width = 25
+		*< END OBJECT: BaseClass="commandbutton" />
+
+	ADD OBJECT 'Command7' AS commandbutton WITH ;
+		Caption = "Generar archivo", ;
+		Height = 72, ;
+		Left = 312, ;
+		Name = "Command7", ;
+		Picture = img_excel.bmp, ;
+		Top = 180, ;
+		Width = 120
+		*< END OBJECT: BaseClass="commandbutton" />
+
+	ADD OBJECT 'Command8' AS commandbutton WITH ;
+		Caption = "Generar archivo", ;
+		Height = 72, ;
+		Left = 336, ;
+		Name = "Command8", ;
+		Picture = img_excel.bmp, ;
+		Top = 216, ;
+		Width = 120
+		*< END OBJECT: BaseClass="commandbutton" />
+
+	ADD OBJECT 'Command9' AS commandbutton WITH ;
+		Caption = "Generar archivo", ;
+		Height = 72, ;
+		Left = 228, ;
+		Name = "Command9", ;
+		Picture = img_excel.bmp, ;
+		Top = 252, ;
+		Width = 120
 		*< END OBJECT: BaseClass="commandbutton" />
 
 	ADD OBJECT 'Label1' AS label WITH ;
@@ -319,6 +352,135 @@ DEFINE CLASS form1 AS form
 
 	PROCEDURE Command6.Click
 		thisform.Text3.Value = GETDIR()
+	ENDPROC
+
+	PROCEDURE Command7.Click
+		local cDirbase1, cDirbase2, cNomArch
+		
+		cDirbase1 	= alltrim(thisform.Text1.value)
+		cDirbase2 	= alltrim(thisform.Text2.value)
+		
+		cNomArch 	= alltrim(thisform.Text3.Value) + "STK_SALDOS_" + strtran(dtoc(date()), "/") + "_" + strtran(time(), ":")
+		
+		** GENERO EL CURSOR DE ARTICULOS Y SALDOS
+		sele recno() as num, stk.id_articulo, art.nombre, stk.saldo, stk.saldo_envases, stk.id_deposito; 
+			from (cDirBase1 + "!STK_STOCK") as stk left join (cDirBase1 + "!ARTICULOS") as art;
+				on stk.id_articulo = art.id_articulo;
+		union;		
+		(sele recno() * -1 as num, stk.id_articulo, art.nombre, stk.saldo, stk.saldo_envases, stk.id_deposito; 
+			from (cDirBase2 + "!STK_STOCK") as stk left join (cDirBase2 + "!ARTICULOS") as art;
+				on stk.id_articulo = art.id_articulo);
+		into cursor curArticulosSaldos 
+		
+		** AGRUPO EL CURSOR Y ACUMULO LOS SALDOS
+		** FILTRAR LA CONSULTA POR DEPOSITO
+		if !ThisForm.Check2.Value And !empty(ThisForm.Combo1.Value)
+			sele id_articulo, nombre, sum(saldo) as saldo, sum(saldo_envases) as saldo_envases, id_deposito; 
+				from curArticulosSaldos where id_deposito = ThisForm.Combo1.Value;
+				group by id_articulo orde by id_articulo;
+				into curso curStockConsolidado
+		else
+			sele id_articulo, nombre, sum(saldo) as saldo, sum(saldo_envases) as saldo_envases; 
+				from curArticulosSaldos group by id_articulo orde by id_articulo;
+				into curso curStockConsolidado
+		endif
+		
+		** MOSTRAR O NO ARTICULOS SIN STOCK
+		if thisform.Check1.Value = 1
+			sele * from curStockConsolidado where saldo != 0 into cursor curStockConsolidado
+		endif
+		
+		** EXPORTAR ARCHIVO
+		sele curStockConsolidado
+		copy to (cNomArch) type xl5
+		
+		messagebox("El archivo " + cNomArch + " se grabó con éxito", 0+64, "¡Aviso!")
+	ENDPROC
+
+	PROCEDURE Command8.Click
+		local cDirbase1, cDirbase2, cNomArch
+		
+		cDirbase1 	= alltrim(thisform.Text1.value)
+		cDirbase2 	= alltrim(thisform.Text2.value)
+		
+		cNomArch 	= alltrim(thisform.Text3.Value) + "STK_SALDOS_" + strtran(dtoc(date()), "/") + "_" + strtran(time(), ":")
+		
+		** GENERO EL CURSOR DE ARTICULOS Y SALDOS
+		sele recno() as num, stk.id_articulo, art.nombre, stk.saldo, stk.saldo_envases, stk.id_deposito; 
+			from (cDirBase1 + "!STK_STOCK") as stk left join (cDirBase1 + "!ARTICULOS") as art;
+				on stk.id_articulo = art.id_articulo;
+		union;		
+		(sele recno() * -1 as num, stk.id_articulo, art.nombre, stk.saldo, stk.saldo_envases, stk.id_deposito; 
+			from (cDirBase2 + "!STK_STOCK") as stk left join (cDirBase2 + "!ARTICULOS") as art;
+				on stk.id_articulo = art.id_articulo);
+		into cursor curArticulosSaldos 
+		
+		** AGRUPO EL CURSOR Y ACUMULO LOS SALDOS
+		** FILTRAR LA CONSULTA POR DEPOSITO
+		if !ThisForm.Check2.Value And !empty(ThisForm.Combo1.Value)
+			sele id_articulo, nombre, sum(saldo) as saldo, sum(saldo_envases) as saldo_envases, id_deposito; 
+				from curArticulosSaldos where id_deposito = ThisForm.Combo1.Value;
+				group by id_articulo orde by id_articulo;
+				into curso curStockConsolidado
+		else
+			sele id_articulo, nombre, sum(saldo) as saldo, sum(saldo_envases) as saldo_envases; 
+				from curArticulosSaldos group by id_articulo orde by id_articulo;
+				into curso curStockConsolidado
+		endif
+		
+		** MOSTRAR O NO ARTICULOS SIN STOCK
+		if thisform.Check1.Value = 1
+			sele * from curStockConsolidado where saldo != 0 into cursor curStockConsolidado
+		endif
+		
+		** EXPORTAR ARCHIVO
+		sele curStockConsolidado
+		copy to (cNomArch) type xl5
+		
+		messagebox("El archivo " + cNomArch + " se grabó con éxito", 0+64, "¡Aviso!")
+	ENDPROC
+
+	PROCEDURE Command9.Click
+		local cDirbase1, cDirbase2, cNomArch
+		
+		cDirbase1 	= alltrim(thisform.Text1.value)
+		cDirbase2 	= alltrim(thisform.Text2.value)
+		
+		cNomArch 	= alltrim(thisform.Text3.Value) + "STK_SALDOS_" + strtran(dtoc(date()), "/") + "_" + strtran(time(), ":")
+		
+		** GENERO EL CURSOR DE ARTICULOS Y SALDOS
+		sele recno() as num, stk.id_articulo, art.nombre, stk.saldo, stk.saldo_envases, stk.id_deposito; 
+			from (cDirBase1 + "!STK_STOCK") as stk left join (cDirBase1 + "!ARTICULOS") as art;
+				on stk.id_articulo = art.id_articulo;
+		union;		
+		(sele recno() * -1 as num, stk.id_articulo, art.nombre, stk.saldo, stk.saldo_envases, stk.id_deposito; 
+			from (cDirBase2 + "!STK_STOCK") as stk left join (cDirBase2 + "!ARTICULOS") as art;
+				on stk.id_articulo = art.id_articulo);
+		into cursor curArticulosSaldos 
+		
+		** AGRUPO EL CURSOR Y ACUMULO LOS SALDOS
+		** FILTRAR LA CONSULTA POR DEPOSITO
+		if !ThisForm.Check2.Value And !empty(ThisForm.Combo1.Value)
+			sele id_articulo, nombre, sum(saldo) as saldo, sum(saldo_envases) as saldo_envases, id_deposito; 
+				from curArticulosSaldos where id_deposito = ThisForm.Combo1.Value;
+				group by id_articulo orde by id_articulo;
+				into curso curStockConsolidado
+		else
+			sele id_articulo, nombre, sum(saldo) as saldo, sum(saldo_envases) as saldo_envases; 
+				from curArticulosSaldos group by id_articulo orde by id_articulo;
+				into curso curStockConsolidado
+		endif
+		
+		** MOSTRAR O NO ARTICULOS SIN STOCK
+		if thisform.Check1.Value = 1
+			sele * from curStockConsolidado where saldo != 0 into cursor curStockConsolidado
+		endif
+		
+		** EXPORTAR ARCHIVO
+		sele curStockConsolidado
+		copy to (cNomArch) type xl5
+		
+		messagebox("El archivo " + cNomArch + " se grabó con éxito", 0+64, "¡Aviso!")
 	ENDPROC
 
 	PROCEDURE Text1.ProgrammaticChange
